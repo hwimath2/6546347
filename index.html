@@ -1,0 +1,18 @@
+<!-- 상단에 플레이어 이름 입력 필드 추가 -->
+<div class="name-input" style="margin-bottom:20px;">
+  <label for="player-name">이름: </label>
+  <input type="text" id="player-name" placeholder="이름을 입력하세요">
+</div>
+
+<!-- 기존 difficulty-select, quiz-container 등과 함께... -->
+
+<!-- 결과 영역 (게임 종료 후) -->
+<div class="result-container">
+  <p>게임이 종료되었습니다!</p>
+  <p class="final-score"></p>
+  <p class="final-elapsed-time"></p>
+  <!-- 전송하기 버튼 및 서버 응답을 보여줄 영역 -->
+  <button id="submit-data-btn">전송하기</button>
+  <pre id="response"></pre>
+  <button class="restart-btn">다시 시작</button>
+</div>
