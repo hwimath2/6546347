@@ -1,18 +1,553 @@
-<!-- 상단에 플레이어 이름 입력 필드 추가 -->
-<div class="name-input" style="margin-bottom:20px;">
-  <label for="player-name">이름: </label>
-  <input type="text" id="player-name" placeholder="이름을 입력하세요">
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>휘매쓰 연산 챌린지!</title>
+<!-- MathJax for LaTeX rendering -->
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+<style>
+    body {
+        font-family: 'Arial', sans-serif;
+        background: #f9f9f9;
+        margin: 0;
+        padding: 0;
+    }
+    .container {
+        width: 900px;
+        margin: 30px auto;
+        padding: 20px;
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        text-align: center;
+        position: relative;
+    }
+    h1 {
+        margin-bottom: 20px;
+        font-size: 2em;
+        color: #333;
+    }
+    .difficulty-select, .quiz-container, .result-container, .popup {
+        display: none;
+    }
+    .difficulty-select p {
+        font-size: 1.1em;
+    }
+    .difficulty-select input {
+        padding: 8px;
+        font-size: 1em;
+        margin-bottom: 10px;
+    }
+    .difficulty-select button {
+        padding: 10px 20px;
+        margin: 10px;
+        background: #4CAF50;
+        border: none;
+        color: white;
+        cursor: pointer;
+        border-radius: 5px;
+        font-size: 1em;
+    }
+    .difficulty-select button:hover {
+        background: #45a049;
+    }
+    .info-bar {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        font-size: 1em;
+    }
+    .info-bar div {
+        margin: 0 10px;
+    }
+    .energy-bar-container {
+        width: 100%;
+        background: #ddd;
+        height: 20px;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    .energy-bar {
+        height: 100%;
+        background: #76c7c0;
+        width: 100%;
+        transition: width 0.5s linear;
+    }
+    .quiz-question {
+        font-size: 1.4em;
+        margin-bottom: 20px;
+        text-align: left;
+    }
+    .choices {
+        list-style: none;
+        padding: 0;
+        margin: 0 auto;
+        width: 60%;
+        text-align: center;
+    }
+    .choices li {
+        margin: 10px 0;
+    }
+    .choices button {
+        width: 100%;
+        text-align: center;
+        padding: 10px;
+        font-size: 1em;
+        cursor: pointer;
+        background: #2196F3;
+        border: none;
+        color: #fff;
+        border-radius: 5px;
+    }
+    .choices button:hover {
+        background: #1e87db;
+    }
+    .result-container {
+        text-align: center;
+    }
+    .result-container p {
+        font-size: 1.2em;
+    }
+    .result-container button {
+        margin: 10px 5px;
+        padding: 10px 20px;
+        background: #4CAF50;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    .result-container button:hover {
+        background: #45a049;
+    }
+    #response {
+        margin-top: 15px;
+        font-family: monospace;
+        white-space: pre-wrap;
+    }
+    .popup {
+        position: fixed;
+        top: 30%;
+        left: 50%;
+        transform: translate(-50%, -30%);
+        background: #fff;
+        border: 2px solid #333;
+        border-radius: 10px;
+        padding: 20px;
+        width: 500px;
+        z-index: 9999;
+        box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        text-align: left;
+    }
+    .popup h2 {
+        margin-top: 0;
+    }
+    .popup button {
+        background: #333;
+        color: #fff;
+        border: none;
+        padding: 10px;
+        margin-top: 20px;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+    .popup button:hover {
+        background: #555;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>휘매쓰 연산 챌린지!</h1>
+
+    <div class="difficulty-select">
+        <p>이름을 입력하세요:</p>
+        <input type="text" id="playerName" placeholder="이름 입력">
+        <p>난이도를 선택하세요.</p>
+        <button data-diff="top">최상 (20초 / 문제당 20점)</button>
+        <button data-diff="high">상 (30초 / 문제당 15점)</button>
+        <button data-diff="mid">중 (40초 / 문제당 13점)</button>
+        <button data-diff="low">하 (시간제한 없음 / 문제당 10점)</button>
+    </div>
+
+    <div class="info-bar">
+        <div class="lives">남은 기회 : 3</div>
+        <div class="score">점수 : 0</div>
+        <div class="total-time">전체 경과 시간 : 0초</div>
+    </div>
+
+    <div class="energy-bar-container">
+        <div class="energy-bar"></div>
+    </div>
+
+    <div class="quiz-container">
+        <div class="quiz-question"></div>
+        <ul class="choices"></ul>
+    </div>
+
+    <div class="result-container">
+        <p>게임이 종료되었습니다!</p>
+        <p class="final-score"></p>
+        <p class="elapsed-time"></p>
+        <button id="sendDataBtn">전송하기</button>
+        <button class="restart-btn">다시 시작</button>
+        <div id="response"></div>
+    </div>
+
+    <div class="popup" id="popup-message">
+        <h2>알림</h2>
+        <div class="popup-content"></div>
+        <button class="popup-close">닫기</button>
+    </div>
 </div>
 
-<!-- 기존 difficulty-select, quiz-container 등과 함께... -->
+<script>
+// 수학 관련 함수들
+function gcd(a,b){return b===0?a:gcd(b,a%b);}
+function toFrac(x){
+    if(!isFinite(x)) return ""+x;
+    if(Math.abs(x)<1e-10) x=0;
+    let sign = (x < 0);
+    x = Math.abs(x);
+    let best_num = 0, best_den = 1, best_err = 999;
+    for(let den = 1; den <= 30; den++){
+        let num = Math.round(x * den);
+        let err = Math.abs(x - num/den);
+        if(err < best_err){ best_err = err; best_num = num; best_den = den; }
+    }
+    let g = gcd(best_num, best_den);
+    best_num /= g; best_den /= g;
+    if(best_den === 1) return (sign ? "-" : "") + best_num;
+    return (sign ? "-" : "") + "\\frac{" + best_num + "}{" + best_den + "}";
+}
+function fracToNum(str){
+    let s = str.trim();
+    if(!s.includes('/')){
+        let val = parseFloat(s);
+        return val;
+    }
+    let neg = false;
+    if(s.startsWith('-')) { neg = true; s = s.substring(1); }
+    let parts = s.split('/');
+    if(parts.length !== 2) return NaN;
+    let num = parseFloat(parts[0]);
+    let den = parseFloat(parts[1]);
+    if(isNaN(num) || isNaN(den) || den === 0) return NaN;
+    let val = num/den;
+    return neg ? -val : val;
+}
+function isNumericAnswer(answer){
+    let val = fracToNum(answer);
+    return !isNaN(val);
+}
+function formatFraction(str){
+    if(!isNumericAnswer(str)){ return str.replace(/ /g,"\\ "); }
+    let val = fracToNum(str);
+    return toFrac(val);
+}
+function createNumericDistractors(answer){
+    let val = fracToNum(answer);
+    let dist = [];
+    while(dist.length < 3){
+        let r = val + (Math.random()*2 - 1) * 2; 
+        if(Math.abs(r - val) < 1e-9) continue; 
+        let f = toFrac(r);
+        if(!dist.includes(f)) dist.push(f);
+    }
+    return dist;
+}
+function createStringDistractors(answer){
+    let dist = ["2","1","-1","3"];
+    let uniqueDist = dist.filter(d => d !== answer);
+    while(uniqueDist.length < 3){
+        uniqueDist.push((Math.floor(Math.random()*10)).toString());
+    }
+    return uniqueDist.slice(0,3);
+}
 
-<!-- 결과 영역 (게임 종료 후) -->
-<div class="result-container">
-  <p>게임이 종료되었습니다!</p>
-  <p class="final-score"></p>
-  <p class="final-elapsed-time"></p>
-  <!-- 전송하기 버튼 및 서버 응답을 보여줄 영역 -->
-  <button id="submit-data-btn">전송하기</button>
-  <pre id="response"></pre>
-  <button class="restart-btn">다시 시작</button>
-</div>
+// 문제 데이터 (일부 예시 문제 포함 – 나머지 문제도 동일한 형식으로 추가)
+const problemsData = [
+ {text:"다음 식에서 \\(\\Box\\)에 들어갈 수를 구하시오:", math:"-5 + \\Box = -9", a:"-4", e:"\\(-5 + (-4) = -9\\)"},
+ {text:"다음 식에서 \\(\\Box\\)에 들어갈 수를 구하시오:", math:"\\Box - \\left(+\\frac{5}{12}\\right) = -\\frac{2}{3", a:"-1/4", e:"\\(-\\frac{2}{3}+\\frac{5}{12}=-\\frac{1}{4}\\)"},
+ {text:"다음 식에서 \\(\\Box\\)에 들어갈 수를 구하시오:", math:"(+\\frac{1}{4}) - (\\Box) = +\\frac{13}{12", a:"-5/6", e:"\\(\\frac{1}{4}-\\frac{13}{12}=-\\frac{5}{6}\\)"},
+ // ... 나머지 문제들 ...
+];
+
+function createProblemObject(p){
+    let answer = p.a;
+    let numeric = isNumericAnswer(answer);
+    let distractors = numeric ? createNumericDistractors(answer) : createStringDistractors(answer);
+    let choices = [answer, ...distractors];
+    for(let i = choices.length - 1; i > 0; i--){
+        let j = Math.floor(Math.random() * (i + 1));
+        [choices[i], choices[j]] = [choices[j], choices[i]];
+    }
+    choices = choices.map(c => (isNumericAnswer(c)) ? formatFraction(c) : c);
+    let correctAnswer = numeric ? formatFraction(answer) : answer;
+    let qHTML = "<p>" + p.text + "</p>";
+    if(p.math && p.math.trim().length > 0){
+        qHTML += "<p>$$" + p.math + "$$</p>";
+    }
+    return {
+        questionHTML: qHTML,
+        answer: correctAnswer,
+        explanation: p.e,
+        choices: choices
+    };
+}
+
+let filteredProblems = problemsData;
+let allProblems = filteredProblems.map(p => createProblemObject(p));
+
+let difficulty = null; 
+let perProblemTime = null; 
+let scorePerQuestion = null; 
+let unlimitedTime = false;
+
+let lives = 3;
+let score = 0;
+let totalTime = 0; 
+let totalTimeInterval = null;
+
+let currentProblem = null;
+let problems = [...allProblems];
+let currentIndex = 0;
+
+let problemTimeLeft = null;
+let problemTimer = null;
+
+const difficultySelectDiv = document.querySelector('.difficulty-select');
+const quizContainer = document.querySelector('.quiz-container');
+const resultContainer = document.querySelector('.result-container');
+const questionDiv = document.querySelector('.quiz-question');
+const choicesUl = document.querySelector('.choices');
+const livesDiv = document.querySelector('.lives');
+const scoreDiv = document.querySelector('.score');
+const totalTimeDiv = document.querySelector('.total-time');
+const energyBar = document.querySelector('.energy-bar');
+const popup = document.getElementById('popup-message');
+const popupContent = popup.querySelector('.popup-content');
+const popupCloseBtn = popup.querySelector('.popup-close');
+const restartBtn = document.querySelector('.result-container .restart-btn');
+const sendDataBtn = document.getElementById('sendDataBtn');
+
+document.querySelectorAll('.difficulty-select button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        // 이름 입력 확인
+        let playerName = document.getElementById('playerName').value.trim();
+        if(playerName === ""){
+            alert("이름을 입력해주세요!");
+            return;
+        }
+        const diff = btn.getAttribute('data-diff');
+        if(diff === 'top'){
+            perProblemTime = 20; scorePerQuestion = 20;
+        } else if(diff === 'high'){
+            perProblemTime = 30; scorePerQuestion = 15;
+        } else if(diff === 'mid'){
+            perProblemTime = 40; scorePerQuestion = 13;
+        } else if(diff === 'low'){
+            unlimitedTime = true; scorePerQuestion = 10;
+        }
+        difficulty = diff;
+        startGame();
+    });
+});
+
+function startGame(){
+    difficultySelectDiv.style.display = 'none';
+    quizContainer.style.display = 'block';
+    resultContainer.style.display = 'none';
+    lives = 3; score = 0; updateLives(); updateScore();
+    totalTime = 0;
+    clearInterval(totalTimeInterval);
+    totalTimeInterval = setInterval(() => {
+        totalTime++;
+        totalTimeDiv.textContent = "전체 경과 시간 : " + totalTime + "초";
+    }, 1000);
+    problems = [...allProblems];
+    shuffle(problems);
+    currentIndex = 0;
+    nextProblem();
+}
+
+function shuffle(array){
+    for(let i = array.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+function nextProblem(){
+    if(currentIndex >= problems.length){
+        problems = [...allProblems];
+        shuffle(problems);
+        currentIndex = 0;
+    }
+    currentProblem = problems[currentIndex++];
+    displayProblem(currentProblem);
+    if(!unlimitedTime){
+        problemTimeLeft = perProblemTime;
+        startProblemTimer();
+    } else {
+        energyBar.style.width = "100%";
+    }
+}
+
+function displayProblem(prob){
+    questionDiv.innerHTML = prob.questionHTML;
+    choicesUl.innerHTML = "";
+    prob.choices.forEach(c => {
+        let li = document.createElement('li');
+        let btn = document.createElement('button');
+        btn.innerHTML = "\\(" + c + "\\)";
+        btn.addEventListener('click', () => checkAnswer(c));
+        li.appendChild(btn);
+        choicesUl.appendChild(li);
+    });
+    MathJax.typesetPromise();
+}
+
+function startProblemTimer(){
+    clearInterval(problemTimer);
+    updateEnergyBar();
+    problemTimer = setInterval(() => {
+        problemTimeLeft--;
+        updateEnergyBar();
+        if(problemTimeLeft <= 0){
+            clearInterval(problemTimer);
+            wrongAnswerTimeOut();
+        }
+    }, 1000);
+}
+
+function updateEnergyBar(){
+    if(unlimitedTime){
+        energyBar.style.width = "100%";
+    } else {
+        const widthPercent = (problemTimeLeft / perProblemTime) * 100;
+        energyBar.style.width = widthPercent + "%";
+    }
+}
+
+function normalizeChoice(str){
+    let cleaned = str.replace(/\\frac{([^}]+)}{([^}]+)}/g, "($1/$2)")
+                     .replace(/[\\()]/g, '');
+    let val = fracToNum(cleaned);
+    if(!isNaN(val)) return val.toString();
+    return str.replace(/[\\()]/g, '').trim();
+}
+
+function checkAnswer(chosen){
+    clearInterval(problemTimer);
+    let correct = normalizeChoice(currentProblem.answer);
+    let userChoice = normalizeChoice(chosen);
+    if(correct === userChoice){
+        score += scorePerQuestion; updateScore();
+        checkRandomReward();
+        nextProblem();
+    } else {
+        lives--;
+        updateLives();
+        showPopup("오답입니다!<br>정답: \\(" + currentProblem.answer + "\\)<br>풀이: " + currentProblem.explanation);
+        MathJax.typesetPromise();
+        if(lives <= 0){
+            endGame();
+        } else {
+            nextProblem();
+        }
+    }
+}
+
+function wrongAnswerTimeOut(){
+    lives--;
+    updateLives();
+    showPopup("시간 초과!<br>정답: \\(" + currentProblem.answer + "\\)<br>풀이: " + currentProblem.explanation);
+    MathJax.typesetPromise();
+    if(lives <= 0){
+        endGame();
+    } else {
+        nextProblem();
+    }
+}
+
+function updateLives(){
+    livesDiv.textContent = "남은 기회 : " + lives;
+}
+
+function updateScore(){
+    scoreDiv.textContent = "점수 : " + score;
+}
+
+function endGame(){
+    clearInterval(problemTimer);
+    clearInterval(totalTimeInterval);
+    quizContainer.style.display = 'none';
+    resultContainer.style.display = 'block';
+    resultContainer.querySelector('.final-score').textContent = "최종 점수: " + score;
+    resultContainer.querySelector('.elapsed-time').textContent = "경과 시간: " + totalTime + "초";
+}
+
+// 서버에 데이터 전송하는 함수
+function saveData(game, name, score, elapsedTime) {
+    const FUNCTION_URL = "https://us-central1-record-f420d.cloudfunctions.net/report";
+    const requestData = {
+        game: game,
+        name: name,
+        score: parseInt(score, 10),
+        elapsedTime: parseInt(elapsedTime, 10)
+    };
+    fetch(FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json().then(data => ({ ok: response.ok, data: data })))
+    .then(result => {
+        if(result.ok){
+            document.getElementById('response').innerText = "성공: " + JSON.stringify(result.data, null, 2);
+        } else {
+            document.getElementById('response').innerText = "오류: " + JSON.stringify(result.data, null, 2);
+        }
+    })
+    .catch(error => {
+        console.error('요청 실패:', error);
+        document.getElementById('response').innerText = "네트워크 오류: " + error.message;
+    });
+}
+
+// 전송하기 버튼 클릭 시 서버로 데이터 전송 (게임 제목, 이름, 점수, 경과시간)
+sendDataBtn.addEventListener('click', () => {
+    const gameTitle = document.querySelector('h1').innerText;
+    const playerName = document.getElementById('playerName').value.trim();
+    saveData(gameTitle, playerName, score, totalTime);
+});
+
+function showPopup(msg){
+    popupContent.innerHTML = msg;
+    popup.style.display = 'block';
+}
+
+popupCloseBtn.addEventListener('click', () => {
+    popup.style.display = 'none';
+    MathJax.typesetPromise();
+});
+
+restartBtn.addEventListener('click', () => {
+    clearInterval(problemTimer);
+    clearInterval(totalTimeInterval);
+    difficulty = null;
+    perProblemTime = null; scorePerQuestion = null; unlimitedTime = false;
+    quizContainer.style.display = 'none';
+    resultContainer.style.display = 'none';
+    difficultySelectDiv.style.display = 'block';
+});
+
+difficultySelectDiv.style.display = 'block';
+</script>
+</body>
+</html>
